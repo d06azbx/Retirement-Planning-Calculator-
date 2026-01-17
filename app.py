@@ -6,12 +6,12 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Retirement Planner", layout="wide")
 
 def main():
-    st.title("🎯 Professional Retirement Planner")
+    st.title("Professional Retirement Planner")
     st.markdown("### Accurate replication of Excel logic with a clean interface")
 
     # --- SIDEBAR: CORE ASSUMPTIONS ---
     with st.sidebar:
-        st.header("🔑 Core Assumptions")
+        st.header("Core Assumptions")
         curr_age = st.number_input("Current Age", value=25)
         ret_age = st.number_input("Retirement Age", value=50)
         end_age = st.number_input("Plan Until Age", value=85)
@@ -154,3 +154,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
