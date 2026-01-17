@@ -2,114 +2,155 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
+# Set page to wide for better distribution
 st.set_page_config(page_title="Retirement Planner", layout="wide")
 
 def main():
-    st.title("Retirement Planner")
+    st.title("🎯 Professional Retirement Planner")
+    st.markdown("### Accurate replication of Excel logic with a clean interface")
+
+    # --- SIDEBAR: CORE ASSUMPTIONS ---
+    with st.sidebar:
+        st.header("🔑 Core Assumptions")
+        curr_age = st.number_input("Current Age", value=25)
+        ret_age = st.number_input("Retirement Age", value=50)
+        end_age = st.number_input("Plan Until Age", value=85)
+        
+        st.divider()
+        init_savings = st.number_input("Current Savings (₹)", value=0)
+        monthly_invest = st.number_input("Current Monthly Investment (₹)", value=10000)
+        step_up_pct = st.number_input("Annual Step-up in Savings (%)", value=5.0) / 100
+        
+        st.divider()
+        monthly_exp_today = st.number_input("Monthly Expense (Today's rate ₹)", value=50000)
+        inflation_pct = st.number_input("Annual Inflation (%)", value=5.0) / 100
+
+    # --- MAIN AREA: INVESTMENT & TAX APPROACH ---
+    st.header("📈 Investment & Tax Approach")
     
-    # --- Assumptions ---
-    st.header("Assumptions")
-    a1, a2, a3 = st.columns(3)
-    curr_age = a1.number_input("Current Age", value=25)
-    ret_age = a2.number_input("Retirement Age", value=50)
-    end_age = a3.number_input("Expenses until age", value=85)
-
-    a4, a5, a6 = st.columns(3)
-    init_savings = a4.number_input("Current Savings", value=0)
-    monthly_invest = a5.number_input("Monthly Investments", value=10000)
-    step_up = a6.number_input("Annual Step-up (%)", value=5.0) / 100
-
-    a7, a8 = st.columns(2)
-    monthly_exp_today = a7.number_input("Post-retirement monthly expense (Today's rate)", value=50000)
-    inflation = a8.number_input("Inflation (%)", value=5.0) / 100
-
-    # --- Investment & Tax Approach ---
-    st.header("Investment Approach")
-    asset_names = ["Fixed Returns", "Large Cap Mutual Funds", "Midcap Mutual Funds", "Smallcap mutual funds"]
+    # Asset definition (Matches Excel)
+    assets = ["Fixed Returns", "Large Cap Mutual Funds", "Midcap Mutual Funds", "Smallcap mutual funds"]
     def_returns = [0.07, 0.12, 0.15, 0.18]
     def_taxes = [0.30, 0.20, 0.20, 0.20]
     
-    col_e, col_r = st.columns(2)
+    col1, col2 = st.columns(2)
 
-    with col_e:
+    with col1:
         st.subheader("Earning Phase")
         e_shares = [0.20, 0.40, 0.30, 0.10]
-        e_results = []
-        for i, name in enumerate(asset_names):
-            c1, c2, c3 = st.columns([2, 1, 1])
-            r = c1.number_input(f"{name} Return", value=def_returns[i], format="%.2f", key=f"er_{i}")
-            t = c2.number_input(f"Tax", value=def_taxes[i], format="%.2f", key=f"et_{i}")
-            s = c3.number_input(f"Share", value=e_shares[i], format="%.2f", key=f"es_{i}")
-            e_results.append({"r": r, "t": t, "s": s})
+        e_data = []
+        # Header for the mini-table
+        h1, h2, h3, h4 = st.columns([2, 1, 1, 1])
+        h1.caption("Asset")
+        h2.caption("Return %")
+        h3.caption("Tax %")
+        h4.caption("Share %")
         
-        # Excel Logic: Row 11 Weighted Values
-        w_ret_e = sum(d['r'] * d['s'] for d in e_results)
-        w_tax_e = sum(d['t'] * d['s'] for d in e_results)
-        st.write(f"Weighted Return: {w_ret_e:.3f} | Weighted Tax: {w_tax_e:.3f}")
+        for i, name in enumerate(assets):
+            c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
+            r = c2.number_input("Ret", value=int(def_returns[i]*100), key=f"er_{i}", label_visibility="collapsed") / 100
+            t = c3.number_input("Tax", value=int(def_taxes[i]*100), key=f"et_{i}", label_visibility="collapsed") / 100
+            s = c4.number_input("Shr", value=int(e_shares[i]*100), key=f"es_{i}", label_visibility="collapsed") / 100
+            e_data.append({"r": r, "t": t, "s": s})
+        
+        # Excel's Row 11 logic
+        w_ret_e = sum(d['r'] * d['s'] for d in e_data)
+        w_tax_e = sum(d['t'] * d['s'] for d in e_data)
+        
+        st.info(f"**Weighted Return:** {w_ret_e:.2%} | **Weighted Tax:** {w_tax_e:.2%}")
 
-    with col_r:
+    with col2:
         st.subheader("Retirement Phase")
-        r_shares = [0.00, 1.00, 0.00, 0.00]
-        r_results = []
-        for i, name in enumerate(asset_names):
-            c1, c2, c3 = st.columns([2, 1, 1])
-            r = c1.number_input(f"{name} Return", value=def_returns[i], format="%.2f", key=f"rr_{i}")
-            t = c2.number_input(f"Tax", value=def_taxes[i], format="%.2f", key=f"rt_{i}")
-            s = c3.number_input(f"Share", value=r_shares[i], format="%.2f", key=f"rs_{i}")
-            r_results.append({"r": r, "t": t, "s": s})
+        r_shares = [0.0, 1.0, 0.0, 0.0]
+        r_data = []
+        h1, h2, h3, h4 = st.columns([2, 1, 1, 1])
+        h1.caption("Asset")
+        h2.caption("Return %")
+        h3.caption("Tax %")
+        h4.caption("Share %")
+        
+        for i, name in enumerate(assets):
+            c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
+            r = c2.number_input("Ret", value=int(def_returns[i]*100), key=f"rr_{i}", label_visibility="collapsed") / 100
+            t = c3.number_input("Tax", value=int(def_taxes[i]*100), key=f"rt_{i}", label_visibility="collapsed") / 100
+            s = c4.number_input("Shr", value=int(r_shares[i]*100), key=f"rs_{i}", label_visibility="collapsed") / 100
+            r_data.append({"r": r, "t": t, "s": s})
             
-        w_ret_r = sum(d['r'] * d['s'] for d in r_results)
-        w_tax_r = sum(d['t'] * d['s'] for d in r_results)
-        st.write(f"Weighted Return: {w_ret_r:.3f} | Weighted Tax: {w_tax_r:.3f}")
+        # Excel's Row 21 logic
+        w_ret_r = sum(d['r'] * d['s'] for d in r_data)
+        w_tax_r = sum(d['t'] * d['s'] for d in r_data)
+        
+        st.info(f"**Weighted Return:** {w_ret_r:.2%} | **Weighted Tax:** {w_tax_r:.2%}")
 
-    # --- Calculations ---
-    data = []
+    # --- CALCULATION ENGINE ---
+    # Formula: Ending = Starting * (1 + Weighted Return) + Add. Savings - Expenses
+    results = []
     current_bal = init_savings
-    annual_inv = monthly_invest * 12
+    annual_saving = monthly_invest * 12
 
     for age in range(curr_age, 101):
         if age < ret_age:
-            status, rate = "Earning", w_ret_e
-            inv = annual_inv if age == curr_age else annual_inv * ((1 + step_up) ** (age - curr_age))
+            status = "Earning"
+            rate = w_ret_e
+            # Annual savings starts at year 0 and steps up every year
+            inv = annual_saving if age == curr_age else annual_saving * ((1 + step_up_pct) ** (age - curr_age))
             exp = 0
         elif age < end_age:
-            status, rate = "Retired", w_ret_r
+            status = "Retired"
+            rate = w_ret_r
             inv = 0
-            exp = (monthly_exp_today * 12) * ((1 + inflation) ** (age - curr_age))
+            # Expenses indexed to inflation from today
+            exp = (monthly_exp_today * 12) * ((1 + inflation_pct) ** (age - curr_age))
         else:
-            status, rate, inv, exp, current_bal = "Dead", 0, 0, 0, 0
+            status = "Dead"
+            rate, inv, exp, current_bal = 0, 0, 0, 0
 
         start_bal = current_bal
-        # Ending Savings = Starting * (1 + Weighted Return) + Additional Savings - Planned Expenses
-        end_bal = (start_bal * (1 + rate)) + inv - exp if status != "Dead" else 0
-        
-        data.append({
+        if status != "Dead":
+            end_bal = start_bal * (1 + rate) + inv - exp
+        else:
+            end_bal = 0
+            
+        results.append({
             "Age": age, "Status": status, "Starting Saving": start_bal,
             "Investment": inv, "Expenses": exp, "Ending Saving": end_bal
         })
         current_bal = end_bal
 
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(results)
 
-    # --- Visuals ---
-    st.header("Results")
-    m1, m2 = st.columns(2)
-    corpus = df[df['Age'] == ret_age]['Starting Saving'].values[0]
-    m1.metric("Retirement Corpus", f"{corpus:,.0f}")
-    
-    out_of_money = df[(df['Status'] == 'Retired') & (df['Ending Saving'] < 0)]
-    if not out_of_money.empty:
-        m2.error(f"Funds exhausted at age {out_of_money.iloc[0]['Age']}")
-    else:
-        m2.success("Sustainable Plan")
+    # --- DASHBOARD SECTION ---
+    st.divider()
+    res_col1, res_col2 = st.columns([1, 2])
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['Age'], y=df['Ending Saving'], fill='tozeroy', name="Savings"))
-    st.plotly_chart(fig, use_container_width=True)
+    with res_col1:
+        st.subheader("Summary")
+        corpus = df[df['Age'] == ret_age]['Starting Saving'].values[0]
+        st.metric("Retirement Corpus", f"₹{corpus:,.0f}")
+        
+        fail_check = df[(df['Status'] == 'Retired') & (df['Ending Saving'] < 0)]
+        if not fail_check.empty:
+            st.error(f"⚠️ Funds exhausted at age {fail_check.iloc[0]['Age']}")
+        else:
+            st.success("✅ Plan is sustainable")
+            
+        fig_pie = go.Figure(data=[go.Pie(labels=assets, values=e_shares, hole=.3)])
+        fig_pie.update_layout(title="Earning Asset Mix", height=300, margin=dict(t=30, b=0, l=0, r=0))
+        st.plotly_chart(fig_pie, use_container_width=True)
 
-    # Table
-    st.subheader("Detailed Breakdown")
-    st.dataframe(df)
+    with res_col2:
+        st.subheader("Wealth Projection")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df['Age'], y=df['Ending Saving'], fill='tozeroy', name="Net Wealth", line_color='#1f77b4'))
+        fig.update_layout(height=450, margin=dict(l=0, r=0, t=20, b=0), yaxis_title="Savings (₹)")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # --- FULL DATA TABLE ---
+    with st.expander("📝 View Detailed Annual Breakdown (Excel View)"):
+        formatted_df = df.copy()
+        for col in ["Starting Saving", "Investment", "Expenses", "Ending Saving"]:
+            formatted_df[col] = formatted_df[col].apply(lambda x: f"₹{x:,.0f}")
+        st.table(formatted_df)
 
 if __name__ == "__main__":
     main()
