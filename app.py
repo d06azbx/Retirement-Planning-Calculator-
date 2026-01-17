@@ -6,12 +6,11 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Retirement Planner", layout="wide")
 
 def main():
-    st.title("🎯 Professional Retirement Planner")
-    st.markdown("### Accurate replication of Excel logic with a clean interface")
+    st.title("Professional Retirement Planner")
 
     # --- SIDEBAR: CORE ASSUMPTIONS ---
     with st.sidebar:
-        st.header("🔑 Core Assumptions")
+        st.header("Core Assumptions")
         curr_age = st.number_input("Current Age", value=25)
         ret_age = st.number_input("Retirement Age", value=50)
         end_age = st.number_input("Plan Until Age", value=85)
@@ -26,7 +25,7 @@ def main():
         inflation_pct = st.number_input("Annual Inflation (%)", value=5.0) / 100
 
     # --- MAIN AREA: INVESTMENT & TAX APPROACH ---
-    st.header("📈 Investment & Tax Approach")
+    st.header("Investment & Tax Approach")
     
     # Asset definition (Matches Excel)
     assets = ["Fixed Returns", "Large Cap Mutual Funds", "Midcap Mutual Funds", "Smallcap Mutual funds"]
@@ -147,7 +146,7 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
 
     # --- FULL DATA TABLE ---
-    with st.expander("📝 View Detailed Annual Breakdown (Excel View)"):
+    with st.expander("View Detailed Annual Breakdown (Excel View)"):
         formatted_df = df.copy()
         for col in ["Starting Saving", "Investment", "Expenses", "Ending Saving"]:
             formatted_df[col] = formatted_df[col].apply(lambda x: f"₹{x:,.0f}")
@@ -155,3 +154,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
