@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Retirement Planner", layout="wide")
 
 def main():
-    st.title("Professional Retirement Planner")
+    st.title("Retirement Planner")
 
     # --- SIDEBAR: CORE ASSUMPTIONS ---
     with st.sidebar:
@@ -153,4 +153,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
