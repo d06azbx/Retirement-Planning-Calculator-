@@ -2,118 +2,172 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-# Page Config
-st.set_page_config(page_title="Pro Retirement Planner", layout="wide")
+# --- Page Configuration ---
+st.set_page_config(page_title="Retirement Planner", layout="wide")
 
-st.title("🎯 Professional Retirement & Fire Planner")
-st.markdown("Based on your multi-asset portfolio and step-up investment strategy.")
+def main():
+    st.title("📊 Retirement Planner")
+    st.markdown("This planner replicates the logic and structure of your retirement planning spreadsheet.")
 
-# --- SIDEBAR: CORE SETTINGS ---
-with st.sidebar:
-    st.header("⏳ Timeline")
-    curr_age = st.number_input("Current Age", value=25)
-    retire_age = st.number_input("Retirement Age", value=50)
-    life_expectancy = st.number_input("Expenses planned until age", value=85)
+    # --- Sidebar: User Inputs ---
+    st.sidebar.header("1. Personal Details")
+    curr_age = st.sidebar.number_input("Current Age", value=25, min_value=1)
+    ret_age = st.sidebar.number_input("Retirement Age", value=50, min_value=curr_age)
+    end_age = st.sidebar.number_input("Expenses planned until age", value=85, min_value=ret_age)
     
-    st.header("💰 Initial Financials")
-    curr_savings = st.number_input("Current Savings ($)", value=0)
-    monthly_invest = st.number_input("Starting Monthly Investment ($)", value=10000)
-    step_up = st.slider("Annual Step-up in Savings (%)", 0, 20, 5) / 100
+    st.sidebar.header("2. Savings & Investments")
+    init_savings = st.sidebar.number_input("Current Savings Amount (₹)", value=0.0, step=10000.0)
+    monthly_invest = st.sidebar.number_input("Current Monthly Investments (₹)", value=10000.0, step=1000.0)
+    step_up_pct = st.sidebar.number_input("Annual Step-up in savings (%)", value=5.0, step=0.5) / 100.0
     
-    st.header("📈 Inflation & Lifestyle")
-    inflation = st.slider("Expected Inflation (%)", 0, 10, 5) / 100
-    post_retire_exp = st.number_input("Monthly Expense Needed Today ($)", value=50000)
+    st.sidebar.header("3. Retirement & Inflation")
+    monthly_exp_today = st.sidebar.number_input("Post-retirement monthly amount (Today's rate ₹)", value=50000.0, step=5000.0)
+    inflation_pct = st.sidebar.number_input("Annual Inflation (%)", value=5.0, step=0.5) / 100.0
 
-# --- ASSET ALLOCATION & RETURNS ---
-st.write("### 🏗️ Portfolio Strategy")
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Pre-Retirement Returns")
-    # Weighted average return based on your Excel logic
-    fixed_r = st.slider("Fixed Income (%)", 0.0, 15.0, 7.0) / 100
-    lc_r = st.slider("Large Cap (%)", 0.0, 20.0, 12.0) / 100
-    mc_r = st.slider("Mid Cap (%)", 0.0, 25.0, 15.0) / 100
-    sc_r = st.slider("Small Cap (%)", 0.0, 30.0, 18.0) / 100
+    # --- Investment Portfolio Configuration ---
+    st.header("Investment Approach")
+    st.write("Configure your asset allocation and expected returns for both life phases.")
     
-    # Calculating Weighted Average Return (Simplified for this UI)
-    avg_return = (fixed_r * 0.2) + (lc_r * 0.4) + (mc_r * 0.3) + (sc_r * 0.1)
+    asset_names = ["Fixed Returns", "Large Cap Mutual Funds", "Midcap Mutual Funds", "Smallcap mutual funds"]
+    def_returns = [0.07, 0.12, 0.15, 0.18]
+    def_shares_earning = [0.20, 0.40, 0.30, 0.10]
+    def_shares_retire = [0.00, 1.00, 0.00, 0.00]
 
-with col2:
-    st.subheader("Post-Retirement Strategy")
-    pr_return = st.slider("Safe Withdrawal Return (%)", 1.0, 15.0, 12.0) / 100
-    st.info(f"Weighted Pre-Retire Return: **{avg_return:.2%}**")
-
-# --- SIMULATION ENGINE ---
-ages = list(range(curr_age, life_expectancy + 1))
-corpus_data = []
-current_corpus = curr_savings
-yearly_invest = monthly_invest * 12
-current_expense = post_retire_exp * 12
-
-# Inflate expenses to the point of retirement
-retirement_expense_at_start = current_expense * ((1 + inflation) ** (retire_age - curr_age))
-
-for age in ages:
-    status = "Earning" if age < retire_age else "Retired"
+    col1, col2 = st.columns(2)
     
-    # Calculate returns for the year
-    rate = avg_return if status == "Earning" else pr_return
-    
-    start_bal = current_corpus
-    
-    if status == "Earning":
-        expense = 0
-        savings = yearly_invest
-        # Apply Step-up for next year
-        yearly_invest *= (1 + step_up)
-    else:
-        expense = retirement_expense_at_start
-        savings = 0
-        # Inflate expenses for next year
-        retirement_expense_at_start *= (1 + inflation)
+    with col1:
+        st.subheader("Earning Phase Portfolio")
+        e_returns = []
+        e_shares = []
+        for i, name in enumerate(asset_names):
+            c_a, c_b = st.columns(2)
+            with c_a:
+                r = st.number_input(f"{name} Return (%)", value=def_returns[i]*100, key=f"er_{i}") / 100
+            with c_b:
+                s = st.number_input(f"{name} Share (%)", value=def_shares_earning[i]*100, key=f"es_{i}") / 100
+            e_returns.append(r)
+            e_shares.append(s)
+        
+        w_ret_earning = sum(r * s for r, s in zip(e_returns, e_shares))
+        st.info(f"Weighted Return (Earning): **{w_ret_earning:.2%}**")
+        if sum(e_shares) != 1.0:
+            st.warning("Shares must sum to 100%")
 
-    current_corpus = (current_corpus + savings - expense) * (1 + rate)
-    
-    corpus_data.append({
-        "Age": age,
-        "Status": status,
-        "Start Balance": round(start_bal, 2),
-        "Outflow/Inflow": round(savings - expense, 2),
-        "End Balance": round(max(0, current_corpus), 2)
-    })
-    
-    if current_corpus < 0:
-        current_corpus = 0
+    with col2:
+        st.subheader("Retirement Phase Portfolio")
+        r_returns = []
+        r_shares = []
+        for i, name in enumerate(asset_names):
+            c_a, c_b = st.columns(2)
+            with c_a:
+                r = st.number_input(f"{name} Return (%)", value=def_returns[i]*100, key=f"rr_{i}") / 100
+            with c_b:
+                s = st.number_input(f"{name} Share (%)", value=def_shares_retire[i]*100, key=f"rs_{i}") / 100
+            r_returns.append(r)
+            r_shares.append(s)
+        
+        w_ret_retire = sum(r * s for r, s in zip(r_returns, r_shares))
+        st.info(f"Weighted Return (Retirement): **{w_ret_retire:.2%}**")
+        if sum(r_shares) != 1.0:
+            st.warning("Shares must sum to 100%")
 
-df = pd.DataFrame(corpus_data)
-
-# --- VISUALIZATION TABS ---
-tab1, tab2, tab3 = st.tabs(["📊 Wealth Projection", "📑 Detailed Ledger", "⚙️ Parameters"])
-
-with tab1:
-    fig = go.Figure()
-    # Fill area for the corpus
-    fig.add_trace(go.Scatter(x=df["Age"], y=df["End Balance"], fill='tozeroy', 
-                             name='Corpus', line_color='rgb(0, 200, 150)'))
+    # --- Calculation Engine ---
+    results = []
+    current_savings = init_savings
+    prev_add_savings = monthly_invest * 12
     
-    # Vertical line for retirement
-    fig.add_vline(x=retire_age, line_dash="dash", line_color="red", annotation_text="Retirement")
+    # Simulate up to age 100
+    for age in range(curr_age, 101):
+        if age < ret_age:
+            status = "Earning"
+        elif age < end_age:
+            status = "Retired"
+        else:
+            status = "Dead"
+            
+        starting_saving = current_savings
+        ret_year_marker = 1 if age == ret_age else 0
+        
+        planned_exp = 0
+        add_savings = 0
+        w_ret = 0
+        
+        if status == "Earning":
+            w_ret = w_ret_earning
+            if age == curr_age:
+                add_savings = monthly_invest * 12
+            else:
+                add_savings = prev_add_savings * (1 + step_up_pct)
+            planned_exp = 0
+            
+        elif status == "Retired":
+            w_ret = w_ret_retire
+            add_savings = 0
+            # Indexed to inflation from current age
+            planned_exp = (monthly_exp_today * 12) * ((1 + inflation_pct) ** (age - curr_age))
+            
+        else: # Dead status as per excel
+            starting_saving = 0
+            planned_exp = 0
+            add_savings = 0
+            w_ret = 0
+            
+        # The Growth Formula derived from your Excel:
+        # Ending = Starting * (1 + Weighted Return) + Additional Savings - Planned Expenses
+        if status != "Dead":
+            ending_saving = starting_saving * (1 + w_ret) + add_savings - planned_exp
+        else:
+            ending_saving = 0
+            
+        warning = "You have run out of money" if (status == "Retired" and ending_saving < 0) else ""
+            
+        results.append({
+            "Age": age,
+            "Starting Saving": starting_saving,
+            "Planned expenses (post-tax)": planned_exp,
+            "Additional Savings": add_savings,
+            "Ending Savings": ending_saving,
+            "Status": status,
+            "Retirement Year": ret_year_marker,
+            "Warning": warning
+        })
+        
+        current_savings = ending_saving
+        if status == "Earning":
+            prev_add_savings = add_savings
 
-    fig.update_layout(title="Total Wealth Evolution", height=500, template="plotly_dark",
-                      hovermode="x unified")
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Key Metrics
+    df = pd.DataFrame(results)
+
+    # --- Results Visualization ---
+    st.divider()
     m1, m2, m3 = st.columns(3)
-    final_val = df[df['Age'] == retire_age]['End Balance'].values[0]
-    m1.metric("Corpus at Retirement", f"${final_val:,.0f}")
-    m2.metric("Age Corpus Runs Out", "Never" if df.iloc[-1]['End Balance'] > 0 else df[df['End Balance'] == 0]['Age'].min())
-    m3.metric("Monthly Expense at 50", f"${(retirement_expense_at_start/12):,.0f}")
+    corpus = df[df['Age'] == ret_age]['Starting Saving'].values[0]
+    m1.metric("Corpus at Retirement", f"₹{corpus:,.0f}")
+    
+    # Check sustainability
+    run_out = df[(df['Status'] == 'Retired') & (df['Ending Savings'] < 0)]
+    if not run_out.empty:
+        run_out_age = run_out.iloc[0]['Age']
+        m2.error(f"Money runs out at age {run_out_age}")
+    else:
+        m2.success("Savings last until planned age")
+        
+    m3.metric("Inflation Adjusted Exp. at Retirement", f"₹{df[df['Age'] == ret_age]['Planned expenses (post-tax)'].values[0]:,.0f}/yr")
 
-with tab2:
-    st.dataframe(df, use_container_width=True)
+    st.subheader("Savings Projection")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df['Age'], y=df['Ending Savings'], name="Ending Savings", fill='tozeroy', line=dict(color='green')))
+    fig.add_hline(y=0, line_dash="dash", line_color="red")
+    fig.update_layout(xaxis_title="Age", yaxis_title="Savings (₹)", hovermode="x unified")
+    st.plotly_chart(fig, use_container_width=True)
 
-with tab3:
-    st.write("This model accounts for **annual compounding** and **step-up SIP**.")
-    st.write("The expense model uses **lifestyle inflation** to adjust your post-retirement needs.")
+    st.subheader("Year-by-Year Breakdown")
+    st.dataframe(df.style.format({
+        "Starting Saving": "₹{:,.0f}",
+        "Planned expenses (post-tax)": "₹{:,.0f}",
+        "Additional Savings": "₹{:,.0f}",
+        "Ending Savings": "₹{:,.0f}"
+    }), height=500)
+
+if __name__ == "__main__":
+    main()
